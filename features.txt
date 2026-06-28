@@ -1,0 +1,16 @@
+For patients (client-facing) :
+
+- Online appointment booking with real-time slot availability
+- Live chat / AI chatbot — answer common questions (opening hours, services, pricing) instantly, 24/7
+- Before/after gallery — visual proof for cosmetic treatments, big trust builder
+
+For the doctor / clinic staff
+
+- Admin dashboard — see all appointments in a calendar view, manage slots, mark as confirmed/cancelled
+- SMS/email reminders — automated reminders sent to patients 24h before their appointment
+
+Technical / UX improvements
+
+- Multi-language support (Arabic/French given your Moroccan context — useful if this is a real local clinic)
+- SEO + Google Maps embed on the contact page
+- WhatsApp button — very common and effective for Moroccan clinics specifically

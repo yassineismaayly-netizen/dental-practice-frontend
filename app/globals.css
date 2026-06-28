@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-backgroundClr: #fff;
+  --color-foregroundClr: #333;
+  --color-primary-100: #dfdcff;
+  --color-primary-200: #beb9ff;
+  --color-primary-300: #9e95ff;
+  --color-primary-400: #7d72ff;
+  --color-primary-500: #5d4fff;
+  --color-primary-600: #4a3fcc;
+  --color-primary-700: #382f99;
+  --color-primary-800: #252066;
+  --color-primary-900: #131033;
+}
+
+body {
+  @apply bg-backgroundClr text-foregroundClr;
+}
+
+@layer utilities {
+  .container {
+    @apply max-w-[1258px] mx-auto px-4 sm:px-8 md:px-12 lg:px-16;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply leading-[1.2];
+  }
+  p {
+    @apply leading-relaxed;
+  }
+  .subtitle {
+    @apply text-primary-700;
+  }
+  .section {
+    @apply pt-28;
+  }
+  .title {
+    @apply text-2xl md:text-4xl font-semibold;
+  }
+  .card-title {
+    @apply text-xl font-bold lg:text-[22px];
+  }
+  input,
+  textarea {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .primary-btn {
+    @apply bg-primary-500 hover:bg-primary-700 focus:bg-primary-700 transition-colors text-white px-8 py-4 lg:py-4  lg:px-10 rounded-md text-center;
+  }
+  .secondary-btn {
+    @apply bg-primary-100/50 hover:bg-primary-500 hover:text-white border focus:bg-primary-500 border-primary-200 transition-colors px-8 py-4 lg:py-4  lg:px-10 rounded-md text-center;
+  }
+}
