@@ -23,13 +23,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <ContactFloat />
       <body
         className={dmSans.className}
       >
         <Header />
         <main className="min-h-screen" >{children}</main>
         <Footer />
+      <ContactFloat />
       </body>
     </html>
   );
