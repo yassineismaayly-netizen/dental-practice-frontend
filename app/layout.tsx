@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactFloat from "@/components/ContactFloat";
+import ConditionalLayout from "@/components/ConditinalLayout";
 
 const dmSans = DM_Sans({
   variable: "--font-dmSans-sans",
@@ -26,10 +27,7 @@ export default function RootLayout({
       <body
         className={dmSans.className}
       >
-        <Header />
-        <main className="min-h-screen" >{children}</main>
-        <Footer />
-      <ContactFloat />
+       <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>
   );

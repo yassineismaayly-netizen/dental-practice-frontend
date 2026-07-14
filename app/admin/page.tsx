@@ -1,192 +1,356 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+	RiDashboardLine,
+	RiCalendarCheckLine,
+	RiLogoutBoxLine,
+	RiSearchLine,
+	RiCheckLine,
+	RiCloseLine,
+	RiDeleteBinLine,
+	RiTimeLine,
+	RiPhoneLine,
+	RiStethoscopeLine,
+} from "@remixicon/react";
 
 type Booking = {
-  id: string;
-  name: string;
-  phone: string;
-  service: string;
-  preferred_date: string;
-  message: string;
-  status: string;
-  created_at: string;
+	id: string;
+	name: string;
+	phone: string;
+	service: string;
+	preferred_date: string;
+	message: string;
+	status: string;
+	created_at: string;
 };
 
-const statusStyles: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-700",
-  confirmed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
+const STATUS_STYLES: Record<string, string> = {
+	pending: "bg-amber-100 text-amber-700",
+	confirmed: "bg-emerald-100 text-emerald-700",
+	cancelled: "bg-red-100 text-red-600",
 };
 
+const ADMIN_PASSWORD = "dentora2024";
+
+function getInitials(name: string) {
+	return name
+		.split(" ")
+		.map((n) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
+
+const AVATAR_COLORS = [
+	"bg-violet-500",
+	"bg-blue-500",
+	"bg-emerald-500",
+	"bg-rose-500",
+	"bg-amber-500",
+	"bg-cyan-500",
+];
+function avatarColor(name: string) {
+	return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+}
 export default function AdminPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
-  const [password, setPassword] = useState("");
-  const [authed, setAuthed] = useState(false);
+	const [bookings, setBookings] = useState<Booking[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [filter, setFilter] = useState("all");
+	const [search, setSearch] = useState("");
+	const [password, setPassword] = useState("");
+	const [authed, setAuthed] = useState(false);
+	const [wrongPw, setWrongPw] = useState(false);
 
-  const ADMIN_PASSWORD = "dentora2024";
+	const fetchBookings = async () => {
+		setLoading(true);
+		const { data } = await supabase
+			.from("bookings")
+			.select("*")
+			.order("created_at", { ascending: false });
+		setBookings(data || []);
+		setLoading(false);
+	};
 
-  const fetchBookings = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("bookings")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setBookings(data || []);
-    setLoading(false);
-  };
+	useEffect(() => {
+		if (authed) fetchBookings();
+	}, [authed]);
 
-  useEffect(() => {
-    if (authed) fetchBookings();
-  }, [authed]);
+	const updateStatus = async (id: string, status: string) => {
+		await supabase.from("bookings").update({ status }).eq("id", id);
+		setBookings((prev) =>
+			prev.map((b) => (b.id === id ? { ...b, status } : b)),
+		);
+	};
 
-  const updateStatus = async (id: string, status: string) => {
-    await supabase.from("bookings").update({ status }).eq("id", id);
-    setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status } : b))
-    );
-  };
+	const deleteBooking = async (id: string) => {
+		await supabase.from("bookings").delete().eq("id", id);
+		setBookings((prev) => prev.filter((b) => b.id !== id));
+	};
 
-  const deleteBooking = async (id: string) => {
-    await supabase.from("bookings").delete().eq("id", id);
-    setBookings((prev) => prev.filter((b) => b.id !== id));
-  };
+	const handleLogin = () => {
+		if (password === ADMIN_PASSWORD) {
+			setAuthed(true);
+			setWrongPw(false);
+		} else setWrongPw(true);
+	};
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+	const filtered = bookings
+		.filter((b) => filter === "all" || b.status === filter)
+		.filter(
+			(b) =>
+				b.name.toLowerCase().includes(search.toLowerCase()) ||
+				b.phone.includes(search),
+		);
 
-  // Login screen
-  if (!authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-primary-50">
-        <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-sm space-y-5">
-          <h1 className="text-2xl font-bold text-center">Admin Access</h1>
-          <input
-            type="password"
-            placeholder="Enter password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && setAuthed(password === ADMIN_PASSWORD)}
-            className="w-full border border-primary-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-400"
-          />
-          <button
-            type="button"
-            onClick={() => setAuthed(password === ADMIN_PASSWORD)}
-            className="primary-btn w-full"
-          >
-            Login
-          </button>
-          {password && password !== ADMIN_PASSWORD && (
-            <p className="text-red-500 text-sm text-center">Wrong password</p>
-          )}
-        </div>
-      </div>
-    );
-  }
+	const counts = {
+		total: bookings.length,
+		pending: bookings.filter((b) => b.status === "pending").length,
+		confirmed: bookings.filter((b) => b.status === "confirmed").length,
+		cancelled: bookings.filter((b) => b.status === "cancelled").length,
+	};
 
-  return (
-    <div className="min-h-screen bg-gray-50 pt-28 pb-20">
-      <div className="container">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Bookings Dashboard</h1>
-            <p className="text-gray-500 mt-1">{bookings.length} total requests</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAuthed(false)}
-            className="text-sm text-gray-500 hover:text-red-500 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
+	// Login screen
+	if (!authed)
+		return (
+			<div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
+				<div className="w-full max-w-sm">
+					<div className="flex items-center gap-3 mb-8 justify-center">
+						<div className="size-9 bg-primary-500 rounded-lg flex items-center justify-center">
+							<RiStethoscopeLine size={20} className="text-white" />
+						</div>
+						<span className="text-white text-xl font-bold">Dentora Admin</span>
+					</div>
+					<div className="bg-[#1a1d27] border border-white/10 rounded-2xl p-8 space-y-4">
+						<h1 className="text-white text-xl font-semibold">Sign in</h1>
+						<p className="text-gray-400 text-sm">
+							Enter your password to access the dashboard
+						</p>
+						<input
+							type="password"
+							placeholder="Password"
+							value={password}
+							onChange={(e) => {
+								setPassword(e.target.value);
+								setWrongPw(false);
+							}}
+							onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+							className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
+						/>
+						{wrongPw && (
+							<p className="text-red-400 text-sm">Incorrect password</p>
+						)}
+						<button
+							type="button"
+							onClick={handleLogin}
+							className="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition-colors"
+						>
+							Sign in
+						</button>
+					</div>
+				</div>
+			</div>
+		);
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {["pending", "confirmed", "cancelled"].map((s) => (
-            <div key={s} className="bg-white rounded-xl p-5 border border-gray-200 text-center">
-              <p className="text-2xl font-bold">{bookings.filter((b) => b.status === s).length}</p>
-              <p className="text-sm text-gray-500 capitalize mt-1">{s}</p>
-            </div>
-          ))}
-        </div>
+	// Dashboard
+	return (
+		<div className="min-h-screen bg-[#f5f6fa] flex">
+			{/* Sidebar */}
+			<aside className="w-60 shrink-0 bg-[#0f1117] min-h-screen flex flex-col fixed top-0 left-0 z-40">
+				<div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
+					<div className="size-8 bg-primary-500 rounded-lg flex items-center justify-center">
+						<RiStethoscopeLine size={18} className="text-white" />
+					</div>
+					<span className="text-white font-bold text-lg">Dentora</span>
+				</div>
+				<nav className="flex-1 px-4 py-6 space-y-1">
+					<p className="text-gray-500 text-xs uppercase tracking-widest px-2 mb-3">
+						General
+					</p>
+					<button
+						type="button"
+						className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 font-medium text-sm"
+					>
+						<RiDashboardLine size={18} /> Dashboard
+					</button>
+				</nav>
+				<div className="px-4 py-6 border-t border-white/10">
+					<button
+						type="button"
+						onClick={() => setAuthed(false)}
+						className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-400/5 text-sm transition-colors"
+					>
+						<RiLogoutBoxLine size={18} /> Logout
+					</button>
+				</div>
+			</aside>
 
-        {/* Filter */}
-        <div className="flex gap-2 mb-6">
-          {["all", "pending", "confirmed", "cancelled"].map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${
-                filter === f
-                  ? "bg-primary-500 text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-primary-300"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+			{/* Main */}
+			<main className="ml-60 flex-1 p-8">
+				<div className="mb-8">
+					<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+					<p className="text-gray-500 text-sm mt-1">
+						{new Date().toLocaleDateString("en-US", {
+							weekday: "long",
+							day: "numeric",
+							month: "long",
+							year: "numeric",
+						})}
+					</p>
+				</div>
 
-        {/* Table */}
-        {loading ? (
-          <p className="text-center text-gray-400 py-20">Loading...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-400 py-20">No bookings found.</p>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map((b) => (
-              <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="space-y-1">
-                    <p className="font-bold text-lg">{b.name}</p>
-                    <p className="text-gray-600 text-sm">📞 {b.phone}</p>
-                    {b.service && <p className="text-gray-600 text-sm">🦷 {b.service}</p>}
-                    {b.preferred_date && <p className="text-gray-600 text-sm">📅 {b.preferred_date}</p>}
-                    {b.message && <p className="text-gray-500 text-sm mt-2 italic">"{b.message}"</p>}
-                    <p className="text-gray-400 text-xs mt-1">
-                      {new Date(b.created_at).toLocaleDateString("fr-MA", {
-                        day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusStyles[b.status]}`}>
-                      {b.status}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => updateStatus(b.id, "confirmed")}
-                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors"
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updateStatus(b.id, "cancelled")}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteBooking(b.id)}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+				{/* Stats */}
+				<div className="grid grid-cols-4 gap-4 mb-8">
+					{[
+						{
+							label: "Total Bookings",
+							value: counts.total,
+							color: "text-gray-900",
+							bg: "bg-white",
+						},
+						{
+							label: "Pending",
+							value: counts.pending,
+							color: "text-amber-600",
+							bg: "bg-amber-50",
+						},
+						{
+							label: "Confirmed",
+							value: counts.confirmed,
+							color: "text-emerald-600",
+							bg: "bg-emerald-50",
+						},
+						{
+							label: "Cancelled",
+							value: counts.cancelled,
+							color: "text-red-500",
+							bg: "bg-red-50",
+						},
+					].map((s) => (
+						<div
+							key={s.label}
+							className={`${s.bg} rounded-2xl p-5 border border-gray-100`}
+						>
+							<p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+							<p className="text-gray-500 text-sm mt-1">{s.label}</p>
+						</div>
+					))}
+				</div>
+
+				{/* Bookings list */}
+				<div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+					<div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
+						<div className="flex gap-2">
+							{["all", "pending", "confirmed", "cancelled"].map((f) => (
+								<button
+									key={f}
+									type="button"
+									onClick={() => setFilter(f)}
+									className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${filter === f ? "bg-primary-500 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+								>
+									{f}
+								</button>
+							))}
+						</div>
+						<div className="relative">
+							<RiSearchLine
+								size={16}
+								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+							/>
+							<input
+								type="text"
+								placeholder="Search name or phone..."
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-64"
+							/>
+						</div>
+					</div>
+
+					{loading ? (
+						<p className="text-center text-gray-400 py-20">Loading...</p>
+					) : filtered.length === 0 ? (
+						<p className="text-center text-gray-400 py-20">
+							No bookings found.
+						</p>
+					) : (
+						<div className="divide-y divide-gray-50">
+							{filtered.map((b) => (
+								<div
+									key={b.id}
+									className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors"
+								>
+									<div
+										className={`size-10 rounded-full ${avatarColor(b.name)} flex items-center justify-center text-white text-sm font-bold shrink-0`}
+									>
+										{getInitials(b.name)}
+									</div>
+									<div className="flex-1 min-w-0">
+										<p className="font-semibold text-gray-900 truncate">
+											{b.name}
+										</p>
+										<div className="flex items-center gap-3 mt-0.5 flex-wrap">
+											<span className="flex items-center gap-1 text-xs text-gray-500">
+												<RiPhoneLine size={12} /> {b.phone}
+											</span>
+											{b.service && (
+												<span className="flex items-center gap-1 text-xs text-gray-500">
+													<RiStethoscopeLine size={12} /> {b.service}
+												</span>
+											)}
+											{b.preferred_date && (
+												<span className="flex items-center gap-1 text-xs text-gray-500">
+													<RiCalendarCheckLine size={12} /> {b.preferred_date}
+												</span>
+											)}
+										</div>
+										{b.message && (
+											<p className="text-xs text-gray-400 mt-1 truncate italic">
+												"{b.message}"
+											</p>
+										)}
+									</div>
+									<div className="hidden lg:flex items-center gap-1 text-xs text-gray-400 shrink-0">
+										<RiTimeLine size={12} />
+										{new Date(b.created_at).toLocaleDateString("fr-MA", {
+											day: "numeric",
+											month: "short",
+										})}
+									</div>
+									<span
+										className={`px-3 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${STATUS_STYLES[b.status]}`}
+									>
+										{b.status}
+									</span>
+									<div className="flex items-center gap-1 shrink-0">
+										<button
+											type="button"
+											onClick={() => updateStatus(b.id, "confirmed")}
+											className="size-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+										>
+											<RiCheckLine size={15} />
+										</button>
+										<button
+											type="button"
+											onClick={() => updateStatus(b.id, "cancelled")}
+											className="size-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition-colors"
+										>
+											<RiCloseLine size={15} />
+										</button>
+										<button
+											type="button"
+											onClick={() => deleteBooking(b.id)}
+											className="size-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors"
+										>
+											<RiDeleteBinLine size={15} />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+			</main>
+		</div>
+	);
 }
