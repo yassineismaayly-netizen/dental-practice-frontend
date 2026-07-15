@@ -14,3 +14,19 @@ Technical / UX improvements
 - Multi-language support (Arabic/French given your Moroccan context — useful if this is a real local clinic)
 - SEO + Google Maps embed on the contact page
 - WhatsApp button — very common and effective for Moroccan clinics specifically
+
+Admin dash : 
+
+Gain de temps:
+-Bouton "Appeler" directement sur chaque booking — clique et ça compose le numéro
+-Notes internes — l'assistante peut ajouter une note sur un patient ("a rappelé 2 fois", "préfère le matin")
+-Compteur de nouveaux bookings — badge rouge qui apparaît quand un nouveau arrive depuis la dernière connexion
+-Tri par date souhaitée — voir les RDVs du jour / de la semaine en premier
+
+Organnisation:
+-Vue calendrier — voir tous les RDVs confirmés sur un calendrier mensuel au lieu d'une liste
+-Export Excel/CSV — télécharger la liste des bookings pour la semaine
+-Filtre par service — voir seulement les demandes de blanchiment, implants, etc.
+
+Confort:
+-Notifications en temps réel — le dashboard se met à jour automatiquement quand un nouveau booking arrive sans refresh

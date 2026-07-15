@@ -58,30 +58,39 @@ export default function AdminPage() {
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState("all");
 	const [search, setSearch] = useState("");
+	const [serviceFilter, setServiceFilter] = useState("all");
+	const [dateFilter, setDateFilter] = useState("");
 	const [password, setPassword] = useState("");
 	const [authed, setAuthed] = useState(false);
 	const [wrongPw, setWrongPw] = useState(false);
+	const [lastSeen, setLastSeen] = useState(0);
+	const [newCount, setNewCount] = useState(0);
 
-	const fetchBookings = async () => {
-		setLoading(true);
+	const fetchBookings = async (silent = false) => {
+		if (!silent) setLoading(true);
 		const { data } = await supabase
 			.from("bookings")
 			.select("*")
 			.order("created_at", { ascending: false });
-		setBookings(data || []);
-		setLoading(false);
+		const results = data || [];
+		setBookings(results);
+		if (!silent) setLoading(false);
+
+		if (lastSeen !== 0) {
+			const newOnes = results.filter(
+				(b) => new Date(b.created_at).getTime() > lastSeen,
+			).length;
+			if (newOnes > 0) setNewCount(newOnes);
+		}
+		setLastSeen(Date.now());
 	};
 
 	useEffect(() => {
-		if (authed) fetchBookings();
+		if (!authed) return;
+		fetchBookings();
+		const interval = setInterval(() => fetchBookings(true), 5000);
+		return () => clearInterval(interval);
 	}, [authed]);
-
-	const updateStatus = async (id: string, status: string) => {
-		await supabase.from("bookings").update({ status }).eq("id", id);
-		setBookings((prev) =>
-			prev.map((b) => (b.id === id ? { ...b, status } : b)),
-		);
-	};
 
 	const deleteBooking = async (id: string) => {
 		await supabase.from("bookings").delete().eq("id", id);
@@ -97,11 +106,15 @@ export default function AdminPage() {
 
 	const filtered = bookings
 		.filter((b) => filter === "all" || b.status === filter)
+		.filter((b) => serviceFilter === "all" || b.service === serviceFilter)
+		.filter((b) => !dateFilter || b.preferred_date === dateFilter)
 		.filter(
 			(b) =>
 				b.name.toLowerCase().includes(search.toLowerCase()) ||
 				b.phone.includes(search),
 		);
+
+	const services = [...new Set(bookings.map((b) => b.service).filter(Boolean))];
 
 	const counts = {
 		total: bookings.length,
@@ -188,7 +201,18 @@ export default function AdminPage() {
 			{/* Main */}
 			<main className="ml-60 flex-1 p-8">
 				<div className="mb-8">
-					<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+					<div className="flex items-center gap-3">
+						<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+						{newCount > 0 && (
+							<button
+								type="button"
+								onClick={() => setNewCount(0)}
+								className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse"
+							>
+								+{newCount} new
+							</button>
+						)}
+					</div>
 					<p className="text-gray-500 text-sm mt-1">
 						{new Date().toLocaleDateString("en-US", {
 							weekday: "long",
@@ -265,6 +289,34 @@ export default function AdminPage() {
 								className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-64"
 							/>
 						</div>
+						<select
+							value={serviceFilter}
+							onChange={(e) => setServiceFilter(e.target.value)}
+							className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
+						>
+							<option value="all">All services</option>
+							{services.map((s) => (
+								<option key={s} value={s}>
+									{s}
+								</option>
+							))}
+						</select>
+
+						<input
+							type="date"
+							value={dateFilter}
+							onChange={(e) => setDateFilter(e.target.value)}
+							className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400 text-gray-500"
+						/>
+						{dateFilter && (
+							<button
+								type="button"
+								onClick={() => setDateFilter("")}
+								className="text-xs text-red-400 hover:text-red-600"
+							>
+								Clear
+							</button>
+						)}
 					</div>
 
 					{loading ? (
@@ -323,6 +375,13 @@ export default function AdminPage() {
 										{b.status}
 									</span>
 									<div className="flex items-center gap-1 shrink-0">
+										<a
+											href={`tel:${b.phone}`}
+											className="size-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
+											title="Call"
+										>
+											<RiPhoneLine size={15} />
+										</a>
 										<button
 											type="button"
 											onClick={() => updateStatus(b.id, "confirmed")}
