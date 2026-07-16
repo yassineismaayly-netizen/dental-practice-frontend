@@ -61,10 +61,18 @@ export default function AdminPage() {
 	const [serviceFilter, setServiceFilter] = useState("all");
 	const [dateFilter, setDateFilter] = useState("");
 	const [password, setPassword] = useState("");
-	const [authed, setAuthed] = useState(false);
 	const [wrongPw, setWrongPw] = useState(false);
 	const [lastSeen, setLastSeen] = useState(0);
 	const [newCount, setNewCount] = useState(0);
+	const [authed, setAuthed] = useState(false);
+	const [checking, setChecking] = useState(true);
+
+	useEffect(() => {
+		if (localStorage.getItem("dentora_admin") === "true") {
+			setAuthed(true);
+		}
+		setChecking(false);
+	}, []);
 
 	const fetchBookings = async (silent = false) => {
 		if (!silent) setLoading(true);
@@ -97,9 +105,39 @@ export default function AdminPage() {
 		setBookings((prev) => prev.filter((b) => b.id !== id));
 	};
 
+	const exportCSV = () => {
+		const headers = [
+			"Name",
+			"Phone",
+			"Service",
+			"Preferred Date",
+			"Message",
+			"Status",
+			"Created At",
+		];
+		const rows = filtered.map((b) => [
+			b.name,
+			b.phone,
+			b.service,
+			b.preferred_date,
+			b.message,
+			b.status,
+			new Date(b.created_at).toLocaleDateString("fr-MA"),
+		]);
+		const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+		const blob = new Blob([csv], { type: "text/csv" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	};
+
 	const handleLogin = () => {
 		if (password === ADMIN_PASSWORD) {
 			setAuthed(true);
+			localStorage.setItem("dentora_admin", "true");
 			setWrongPw(false);
 		} else setWrongPw(true);
 	};
@@ -124,6 +162,7 @@ export default function AdminPage() {
 	};
 
 	// Login screen
+	if (checking) return null;
 	if (!authed)
 		return (
 			<div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
@@ -190,7 +229,10 @@ export default function AdminPage() {
 				<div className="px-4 py-6 border-t border-white/10">
 					<button
 						type="button"
-						onClick={() => setAuthed(false)}
+						onClick={() => {
+							setAuthed(false);
+							localStorage.removeItem("dentora_admin");
+						}}
 						className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-400/5 text-sm transition-colors"
 					>
 						<RiLogoutBoxLine size={18} /> Logout
@@ -317,6 +359,13 @@ export default function AdminPage() {
 								Clear
 							</button>
 						)}
+						<button
+							type="button"
+							onClick={exportCSV}
+							className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
+						>
+							⬇ Export CSV
+						</button>
 					</div>
 
 					{loading ? (
