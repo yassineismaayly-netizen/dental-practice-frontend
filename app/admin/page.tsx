@@ -67,6 +67,7 @@ export default function AdminPage() {
 	const [authed, setAuthed] = useState(false);
 	const [checking, setChecking] = useState(true);
 	const isFirstFetch = useRef(true);
+	const [page, setPage] = useState<"dashboard" | "history">("dashboard");
 
 	// Persist login
 	useEffect(() => {
@@ -158,7 +159,19 @@ export default function AdminPage() {
 		} else setWrongPw(true);
 	};
 
-	const filtered = bookings
+	const today = new Date().toISOString().slice(0, 10);
+
+	const activeBookings = bookings.filter(
+		(b) => !b.preferred_date || b.preferred_date >= today,
+	);
+
+	const historyBookings = bookings.filter(
+		(b) => b.preferred_date && b.preferred_date < today,
+	);
+
+	const source = page === "history" ? historyBookings : activeBookings;
+
+	const filtered = source
 		.filter((b) => filter === "all" || b.status === filter)
 		.filter((b) => serviceFilter === "all" || b.service === serviceFilter)
 		.filter((b) => !dateFilter || b.preferred_date === dateFilter)
@@ -170,12 +183,24 @@ export default function AdminPage() {
 
 	const services = [...new Set(bookings.map((b) => b.service).filter(Boolean))];
 
-	const counts = {
-		total: bookings.length,
-		pending: bookings.filter((b) => b.status === "pending").length,
-		confirmed: bookings.filter((b) => b.status === "confirmed").length,
-		cancelled: bookings.filter((b) => b.status === "cancelled").length,
-	};
+	const counts =
+		page === "history"
+			? {
+					total: historyBookings.length,
+					pending: historyBookings.filter((b) => b.status === "pending").length,
+					confirmed: historyBookings.filter((b) => b.status === "confirmed")
+						.length,
+					cancelled: historyBookings.filter((b) => b.status === "cancelled")
+						.length,
+				}
+			: {
+					total: activeBookings.length,
+					pending: activeBookings.filter((b) => b.status === "pending").length,
+					confirmed: activeBookings.filter((b) => b.status === "confirmed")
+						.length,
+					cancelled: activeBookings.filter((b) => b.status === "cancelled")
+						.length,
+				};
 
 	if (checking) return null;
 
@@ -236,11 +261,27 @@ export default function AdminPage() {
 					</p>
 					<button
 						type="button"
-						className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 font-medium text-sm"
+						className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-colors ${
+							page === "dashboard"
+								? "bg-primary-500/10 text-primary-400"
+								: "text-gray-400 hover:text-white hover:bg-white/5"
+						}`}
+						onClick={() => setPage("dashboard")}
 					>
 						<RiDashboardLine size={18} /> Dashboard
 					</button>
 				</nav>
+				<button
+					type="button"
+					onClick={() => setPage("history")}
+					className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-colors ${
+						page === "history"
+							? "bg-primary-500/10 text-primary-400"
+							: "text-gray-400 hover:text-white hover:bg-white/5"
+					}`}
+				>
+					<RiTimeLine size={18} /> History
+				</button>
 				<div className="px-4 py-6 border-t border-white/10">
 					<button
 						type="button"
@@ -259,7 +300,20 @@ export default function AdminPage() {
 			<main className="ml-60 flex-1 p-8">
 				<div className="mb-8">
 					<div className="flex items-center gap-3">
-						<h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+						<div className="flex items-center gap-4">
+							{page === "history" && (
+								<button
+									type="button"
+									onClick={() => setPage("dashboard")}
+									className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+								>
+									← Back
+								</button>
+							)}
+							<h1 className="text-2xl font-bold text-gray-900">
+								{page === "history" ? "History" : "Dashboard"}
+							</h1>
+						</div>
 						{newCount > 0 && (
 							<button
 								type="button"
