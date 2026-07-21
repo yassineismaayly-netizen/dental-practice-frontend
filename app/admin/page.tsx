@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import {
 	RiDashboardLine,
@@ -53,6 +53,7 @@ const AVATAR_COLORS = [
 function avatarColor(name: string) {
 	return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
+
 export default function AdminPage() {
 	const [bookings, setBookings] = useState<Booking[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -62,43 +63,58 @@ export default function AdminPage() {
 	const [dateFilter, setDateFilter] = useState("");
 	const [password, setPassword] = useState("");
 	const [wrongPw, setWrongPw] = useState(false);
-	const [lastSeen, setLastSeen] = useState(0);
 	const [newCount, setNewCount] = useState(0);
 	const [authed, setAuthed] = useState(false);
 	const [checking, setChecking] = useState(true);
+	const isFirstFetch = useRef(true);
 
+	// Persist login
 	useEffect(() => {
-		if (localStorage.getItem("dentora_admin") === "true") {
-			setAuthed(true);
-		}
+		if (localStorage.getItem("dentora_admin") === "true") setAuthed(true);
 		setChecking(false);
 	}, []);
 
-	const fetchBookings = async (silent = false) => {
-		if (!silent) setLoading(true);
+	const fetchBookings = async () => {
+		setLoading(true);
 		const { data } = await supabase
 			.from("bookings")
 			.select("*")
 			.order("created_at", { ascending: false });
-		const results = data || [];
-		setBookings(results);
-		if (!silent) setLoading(false);
-
-		if (lastSeen !== 0) {
-			const newOnes = results.filter(
-				(b) => new Date(b.created_at).getTime() > lastSeen,
-			).length;
-			if (newOnes > 0) setNewCount(newOnes);
-		}
-		setLastSeen(Date.now());
+		setBookings(data || []);
+		setLoading(false);
+		isFirstFetch.current = false;
 	};
 
+	// Realtime + initial fetch
 	useEffect(() => {
 		if (!authed) return;
 		fetchBookings();
-		const interval = setInterval(() => fetchBookings(true), 5000);
-		return () => clearInterval(interval);
+
+		const channel = supabase
+			.channel("bookings-realtime")
+			.on(
+				"postgres_changes",
+				{ event: "INSERT", schema: "public", table: "bookings" },
+				(payload) => {
+					if (!isFirstFetch.current) {
+						setBookings((prev) => [payload.new as Booking, ...prev]);
+						setNewCount((prev) => prev + 1);
+					}
+				},
+			)
+			.subscribe();
+
+		return () => {
+			supabase.removeChannel(channel);
+		};
 	}, [authed]);
+
+	const updateStatus = async (id: string, status: string) => {
+		await supabase.from("bookings").update({ status }).eq("id", id);
+		setBookings((prev) =>
+			prev.map((b) => (b.id === id ? { ...b, status } : b)),
+		);
+	};
 
 	const deleteBooking = async (id: string) => {
 		await supabase.from("bookings").delete().eq("id", id);
@@ -161,8 +177,8 @@ export default function AdminPage() {
 		cancelled: bookings.filter((b) => b.status === "cancelled").length,
 	};
 
-	// Login screen
 	if (checking) return null;
+
 	if (!authed)
 		return (
 			<div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
@@ -204,7 +220,6 @@ export default function AdminPage() {
 			</div>
 		);
 
-	// Dashboard
 	return (
 		<div className="min-h-screen bg-[#f5f6fa] flex">
 			{/* Sidebar */}
@@ -303,7 +318,7 @@ export default function AdminPage() {
 					))}
 				</div>
 
-				{/* Bookings list */}
+				{/* Bookings */}
 				<div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
 					<div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
 						<div className="flex gap-2">
@@ -318,54 +333,55 @@ export default function AdminPage() {
 								</button>
 							))}
 						</div>
-						<div className="relative">
-							<RiSearchLine
-								size={16}
-								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-							/>
+						<div className="flex items-center gap-3 flex-wrap">
+							<div className="relative">
+								<RiSearchLine
+									size={16}
+									className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+								/>
+								<input
+									type="text"
+									placeholder="Search name or phone..."
+									value={search}
+									onChange={(e) => setSearch(e.target.value)}
+									className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-56"
+								/>
+							</div>
+							<select
+								value={serviceFilter}
+								onChange={(e) => setServiceFilter(e.target.value)}
+								className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
+							>
+								<option value="all">All services</option>
+								{services.map((s) => (
+									<option key={s} value={s}>
+										{s}
+									</option>
+								))}
+							</select>
 							<input
-								type="text"
-								placeholder="Search name or phone..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-64"
+								type="date"
+								value={dateFilter}
+								onChange={(e) => setDateFilter(e.target.value)}
+								className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400 text-gray-500"
 							/>
-						</div>
-						<select
-							value={serviceFilter}
-							onChange={(e) => setServiceFilter(e.target.value)}
-							className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
-						>
-							<option value="all">All services</option>
-							{services.map((s) => (
-								<option key={s} value={s}>
-									{s}
-								</option>
-							))}
-						</select>
-
-						<input
-							type="date"
-							value={dateFilter}
-							onChange={(e) => setDateFilter(e.target.value)}
-							className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400 text-gray-500"
-						/>
-						{dateFilter && (
+							{dateFilter && (
+								<button
+									type="button"
+									onClick={() => setDateFilter("")}
+									className="text-xs text-red-400 hover:text-red-600"
+								>
+									Clear
+								</button>
+							)}
 							<button
 								type="button"
-								onClick={() => setDateFilter("")}
-								className="text-xs text-red-400 hover:text-red-600"
+								onClick={exportCSV}
+								className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
 							>
-								Clear
+								⬇ Export CSV
 							</button>
-						)}
-						<button
-							type="button"
-							onClick={exportCSV}
-							className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
-						>
-							⬇ Export CSV
-						</button>
+						</div>
 					</div>
 
 					{loading ? (
