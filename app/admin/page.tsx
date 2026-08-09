@@ -13,6 +13,7 @@ import {
 	RiPhoneLine,
 	RiStethoscopeLine,
 } from "@remixicon/react";
+import { formDromdownItems } from "@/data/data";
 
 type Booking = {
 	id: string;
@@ -69,6 +70,16 @@ export default function AdminPage() {
 	const isFirstFetch = useRef(true);
 	const [page, setPage] = useState<"dashboard" | "history">("dashboard");
 
+	const [showModal, setShowModal] = useState(false);
+	const [newBooking, setNewBooking] = useState({
+		name: "",
+		phone: "",
+		service: "",
+		preferred_date: "",
+		message: "",
+	});
+	const [adding, setAdding] = useState(false);
+
 	// Persist login
 	useEffect(() => {
 		if (localStorage.getItem("dentora_admin") === "true") setAuthed(true);
@@ -84,6 +95,24 @@ export default function AdminPage() {
 		setBookings(data || []);
 		setLoading(false);
 		isFirstFetch.current = false;
+	};
+
+	//booking
+	const addBooking = async () => {
+		if (!newBooking.name || !newBooking.phone) return;
+		setAdding(true);
+		await supabase
+			.from("bookings")
+			.insert([{ ...newBooking, status: "pending" }]);
+		setNewBooking({
+			name: "",
+			phone: "",
+			service: "",
+			preferred_date: "",
+			message: "",
+		});
+		setAdding(false);
+		setShowModal(false);
 	};
 
 	// Realtime + initial fetch
@@ -299,28 +328,47 @@ export default function AdminPage() {
 			{/* Main */}
 			<main className="ml-60 flex-1 p-8">
 				<div className="mb-8">
-					<div className="flex items-center gap-3">
-						<div className="flex items-center gap-4">
-							{page === "history" && (
-								<button
-									type="button"
-									onClick={() => setPage("dashboard")}
-									className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-								>
-									← Back
-								</button>
-							)}
-							<h1 className="text-2xl font-bold text-gray-900">
-								{page === "history" ? "History" : "Dashboard"}
-							</h1>
+					<div className="flex items-center justify-between mb-8">
+						<div>
+							<div className="flex items-center gap-3">
+								{page === "history" && (
+									<button
+										type="button"
+										onClick={() => setPage("dashboard")}
+										className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+									>
+										← Back
+									</button>
+								)}
+								<h1 className="text-2xl font-bold text-gray-900">
+									{page === "history" ? "History" : "Dashboard"}
+								</h1>
+								{newCount > 0 && (
+									<button
+										type="button"
+										onClick={() => setNewCount(0)}
+										className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse"
+									>
+										+{newCount} new
+									</button>
+								)}
+							</div>
+							<p className="text-gray-500 text-sm mt-1">
+								{new Date().toLocaleDateString("en-US", {
+									weekday: "long",
+									day: "numeric",
+									month: "long",
+									year: "numeric",
+								})}
+							</p>
 						</div>
-						{newCount > 0 && (
+						{page === "dashboard" && (
 							<button
 								type="button"
-								onClick={() => setNewCount(0)}
-								className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse"
+								onClick={() => setShowModal(true)}
+								className="bg-primary-500 hover:bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
 							>
-								+{newCount} new
+								+ New Booking
 							</button>
 						)}
 					</div>
@@ -407,7 +455,7 @@ export default function AdminPage() {
 								className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
 							>
 								<option value="all">All services</option>
-								{services.map((s) => (
+								{formDromdownItems.map((s) => (
 									<option key={s} value={s}>
 										{s}
 									</option>
@@ -529,6 +577,99 @@ export default function AdminPage() {
 					)}
 				</div>
 			</main>
+			{showModal && (
+				<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+					<div className="bg-white rounded-2xl p-8 w-full max-w-md space-y-4 shadow-xl">
+						<div className="flex items-center justify-between">
+							<h2 className="text-lg font-bold">New Booking</h2>
+							<button
+								type="button"
+								onClick={() => setShowModal(false)}
+								className="text-gray-400 hover:text-gray-600"
+							>
+								<RiCloseLine size={22} />
+							</button>
+						</div>
+						<div className="grid grid-cols-2 gap-3">
+							<div className="space-y-1">
+								<label className="text-sm font-medium">Full Name *</label>
+								<input
+									type="text"
+									placeholder="John Doe"
+									value={newBooking.name}
+									onChange={(e) =>
+										setNewBooking({ ...newBooking, name: e.target.value })
+									}
+									className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-400"
+								/>
+							</div>
+							<div className="space-y-1">
+								<label className="text-sm font-medium">Phone *</label>
+								<input
+									type="tel"
+									placeholder="+212 6XX XXX XXX"
+									value={newBooking.phone}
+									onChange={(e) =>
+										setNewBooking({ ...newBooking, phone: e.target.value })
+									}
+									className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-400"
+								/>
+							</div>
+						</div>
+						<div className="space-y-1">
+							<label className="text-sm font-medium">Service</label>
+							<select
+								value={newBooking.service}
+								onChange={(e) =>
+									setNewBooking({ ...newBooking, service: e.target.value })
+								}
+								className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-400"
+							>
+								<option value="">Select a service</option>
+								{formDromdownItems.map((s) => (
+									<option key={s} value={s}>
+										{s}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="space-y-1">
+							<label className="text-sm font-medium">Preferred Date</label>
+							<input
+								type="date"
+								value={newBooking.preferred_date}
+								onChange={(e) =>
+									setNewBooking({
+										...newBooking,
+										preferred_date: e.target.value,
+									})
+								}
+								className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-400"
+							/>
+						</div>
+						<div className="space-y-1">
+							<label className="text-sm font-medium">Notes</label>
+							<textarea
+								placeholder="Additional notes..."
+								value={newBooking.message}
+								onChange={(e) =>
+									setNewBooking({ ...newBooking, message: e.target.value })
+								}
+								rows={3}
+								className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary-400 resize-none"
+							/>
+						</div>
+						<button
+							type="button"
+							onClick={addBooking}
+							disabled={adding}
+							className="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60"
+						>
+							{adding ? "Adding..." : "Add Booking"}
+						</button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

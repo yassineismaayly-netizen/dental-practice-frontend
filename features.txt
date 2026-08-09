@@ -30,3 +30,10 @@ Organnisation:
 
 Confort:
 -Notifications en temps réel — le dashboard se met à jour automatiquement quand un nouveau booking arrive sans refresh
+
+New features:
+
+Facturation — créer/voir les factures par patient
+Ordonnances — enregistrer les ordonnances par patient
+Rappels SMS/WhatsApp — envoyer un rappel avant le RDV
+Ajouter un RDV manuellement — quand un patient appelle sans passer par le site
