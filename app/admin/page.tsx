@@ -12,8 +12,10 @@ import {
 	RiTimeLine,
 	RiPhoneLine,
 	RiStethoscopeLine,
+	RiFileListLine,
 } from "@remixicon/react";
 import { formDromdownItems } from "@/data/data";
+import Facturation from "./components/Facturation";
 
 type Booking = {
 	id: string;
@@ -68,7 +70,6 @@ export default function AdminPage() {
 	const [authed, setAuthed] = useState(false);
 	const [checking, setChecking] = useState(true);
 	const isFirstFetch = useRef(true);
-	const [page, setPage] = useState<"dashboard" | "history">("dashboard");
 
 	const [showModal, setShowModal] = useState(false);
 	const [newBooking, setNewBooking] = useState({
@@ -114,6 +115,11 @@ export default function AdminPage() {
 		setAdding(false);
 		setShowModal(false);
 	};
+
+	//facturation
+	const [page, setPage] = useState<"dashboard" | "history" | "facturation">(
+		"dashboard",
+	);
 
 	// Realtime + initial fetch
 	useEffect(() => {
@@ -299,6 +305,17 @@ export default function AdminPage() {
 					>
 						<RiDashboardLine size={18} /> Dashboard
 					</button>
+					<button
+						type="button"
+						onClick={() => setPage("facturation")}
+						className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-colors ${
+							page === "facturation"
+								? "bg-primary-500/10 text-primary-400"
+								: "text-gray-400 hover:text-white hover:bg-white/5"
+						}`}
+					>
+						<RiFileListLine size={18} /> Facturation
+					</button>
 				</nav>
 				<button
 					type="button"
@@ -382,200 +399,207 @@ export default function AdminPage() {
 					</p>
 				</div>
 
-				{/* Stats */}
-				<div className="grid grid-cols-4 gap-4 mb-8">
-					{[
-						{
-							label: "Total Bookings",
-							value: counts.total,
-							color: "text-gray-900",
-							bg: "bg-white",
-						},
-						{
-							label: "Pending",
-							value: counts.pending,
-							color: "text-amber-600",
-							bg: "bg-amber-50",
-						},
-						{
-							label: "Confirmed",
-							value: counts.confirmed,
-							color: "text-emerald-600",
-							bg: "bg-emerald-50",
-						},
-						{
-							label: "Cancelled",
-							value: counts.cancelled,
-							color: "text-red-500",
-							bg: "bg-red-50",
-						},
-					].map((s) => (
-						<div
-							key={s.label}
-							className={`${s.bg} rounded-2xl p-5 border border-gray-100`}
-						>
-							<p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-							<p className="text-gray-500 text-sm mt-1">{s.label}</p>
-						</div>
-					))}
-				</div>
-
-				{/* Bookings */}
-				<div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-					<div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
-						<div className="flex gap-2">
-							{["all", "pending", "confirmed", "cancelled"].map((f) => (
-								<button
-									key={f}
-									type="button"
-									onClick={() => setFilter(f)}
-									className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${filter === f ? "bg-primary-500 text-white" : "text-gray-500 hover:bg-gray-100"}`}
-								>
-									{f}
-								</button>
-							))}
-						</div>
-						<div className="flex items-center gap-3 flex-wrap">
-							<div className="relative">
-								<RiSearchLine
-									size={16}
-									className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-								/>
-								<input
-									type="text"
-									placeholder="Search name or phone..."
-									value={search}
-									onChange={(e) => setSearch(e.target.value)}
-									className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-56"
-								/>
-							</div>
-							<select
-								value={serviceFilter}
-								onChange={(e) => setServiceFilter(e.target.value)}
-								className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
-							>
-								<option value="all">All services</option>
-								{formDromdownItems.map((s) => (
-									<option key={s} value={s}>
-										{s}
-									</option>
-								))}
-							</select>
-							<input
-								type="date"
-								value={dateFilter}
-								onChange={(e) => setDateFilter(e.target.value)}
-								className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400 text-gray-500"
-							/>
-							{dateFilter && (
-								<button
-									type="button"
-									onClick={() => setDateFilter("")}
-									className="text-xs text-red-400 hover:text-red-600"
-								>
-									Clear
-								</button>
-							)}
-							<button
-								type="button"
-								onClick={exportCSV}
-								className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
-							>
-								⬇ Export CSV
-							</button>
-						</div>
-					</div>
-
-					{loading ? (
-						<p className="text-center text-gray-400 py-20">Loading...</p>
-					) : filtered.length === 0 ? (
-						<p className="text-center text-gray-400 py-20">
-							No bookings found.
-						</p>
-					) : (
-						<div className="divide-y divide-gray-50">
-							{filtered.map((b) => (
+				{page === "facturation" ? (
+					<Facturation />
+				) : (
+					<>
+						{/* Stats */}
+						<div className="grid grid-cols-4 gap-4 mb-8">
+							{[
+								{
+									label: "Total Bookings",
+									value: counts.total,
+									color: "text-gray-900",
+									bg: "bg-white",
+								},
+								{
+									label: "Pending",
+									value: counts.pending,
+									color: "text-amber-600",
+									bg: "bg-amber-50",
+								},
+								{
+									label: "Confirmed",
+									value: counts.confirmed,
+									color: "text-emerald-600",
+									bg: "bg-emerald-50",
+								},
+								{
+									label: "Cancelled",
+									value: counts.cancelled,
+									color: "text-red-500",
+									bg: "bg-red-50",
+								},
+							].map((s) => (
 								<div
-									key={b.id}
-									className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors"
+									key={s.label}
+									className={`${s.bg} rounded-2xl p-5 border border-gray-100`}
 								>
-									<div
-										className={`size-10 rounded-full ${avatarColor(b.name)} flex items-center justify-center text-white text-sm font-bold shrink-0`}
-									>
-										{getInitials(b.name)}
-									</div>
-									<div className="flex-1 min-w-0">
-										<p className="font-semibold text-gray-900 truncate">
-											{b.name}
-										</p>
-										<div className="flex items-center gap-3 mt-0.5 flex-wrap">
-											<span className="flex items-center gap-1 text-xs text-gray-500">
-												<RiPhoneLine size={12} /> {b.phone}
-											</span>
-											{b.service && (
-												<span className="flex items-center gap-1 text-xs text-gray-500">
-													<RiStethoscopeLine size={12} /> {b.service}
-												</span>
-											)}
-											{b.preferred_date && (
-												<span className="flex items-center gap-1 text-xs text-gray-500">
-													<RiCalendarCheckLine size={12} /> {b.preferred_date}
-												</span>
-											)}
-										</div>
-										{b.message && (
-											<p className="text-xs text-gray-400 mt-1 truncate italic">
-												"{b.message}"
-											</p>
-										)}
-									</div>
-									<div className="hidden lg:flex items-center gap-1 text-xs text-gray-400 shrink-0">
-										<RiTimeLine size={12} />
-										{new Date(b.created_at).toLocaleDateString("fr-MA", {
-											day: "numeric",
-											month: "short",
-										})}
-									</div>
-									<span
-										className={`px-3 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${STATUS_STYLES[b.status]}`}
-									>
-										{b.status}
-									</span>
-									<div className="flex items-center gap-1 shrink-0">
-										<a
-											href={`tel:${b.phone}`}
-											className="size-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
-											title="Call"
-										>
-											<RiPhoneLine size={15} />
-										</a>
-										<button
-											type="button"
-											onClick={() => updateStatus(b.id, "confirmed")}
-											className="size-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors"
-										>
-											<RiCheckLine size={15} />
-										</button>
-										<button
-											type="button"
-											onClick={() => updateStatus(b.id, "cancelled")}
-											className="size-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition-colors"
-										>
-											<RiCloseLine size={15} />
-										</button>
-										<button
-											type="button"
-											onClick={() => deleteBooking(b.id)}
-											className="size-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors"
-										>
-											<RiDeleteBinLine size={15} />
-										</button>
-									</div>
+									<p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+									<p className="text-gray-500 text-sm mt-1">{s.label}</p>
 								</div>
 							))}
 						</div>
-					)}
-				</div>
+
+						{/* Bookings */}
+						<div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+							<div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 gap-4 flex-wrap">
+								<div className="flex gap-2">
+									{["all", "pending", "confirmed", "cancelled"].map((f) => (
+										<button
+											key={f}
+											type="button"
+											onClick={() => setFilter(f)}
+											className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${filter === f ? "bg-primary-500 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+										>
+											{f}
+										</button>
+									))}
+								</div>
+								<div className="flex items-center gap-3 flex-wrap">
+									<div className="relative">
+										<RiSearchLine
+											size={16}
+											className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+										/>
+										<input
+											type="text"
+											placeholder="Search name or phone..."
+											value={search}
+											onChange={(e) => setSearch(e.target.value)}
+											className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-56"
+										/>
+									</div>
+									<select
+										value={serviceFilter}
+										onChange={(e) => setServiceFilter(e.target.value)}
+										className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400"
+									>
+										<option value="all">All services</option>
+										{formDromdownItems.map((s) => (
+											<option key={s} value={s}>
+												{s}
+											</option>
+										))}
+									</select>
+									<input
+										type="date"
+										value={dateFilter}
+										onChange={(e) => setDateFilter(e.target.value)}
+										className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-400 text-gray-500"
+									/>
+									{dateFilter && (
+										<button
+											type="button"
+											onClick={() => setDateFilter("")}
+											className="text-xs text-red-400 hover:text-red-600"
+										>
+											Clear
+										</button>
+									)}
+									<button
+										type="button"
+										onClick={exportCSV}
+										className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors"
+									>
+										⬇ Export CSV
+									</button>
+								</div>
+							</div>
+
+							{loading ? (
+								<p className="text-center text-gray-400 py-20">Loading...</p>
+							) : filtered.length === 0 ? (
+								<p className="text-center text-gray-400 py-20">
+									No bookings found.
+								</p>
+							) : (
+								<div className="divide-y divide-gray-50">
+									{filtered.map((b) => (
+										<div
+											key={b.id}
+											className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors"
+										>
+											<div
+												className={`size-10 rounded-full ${avatarColor(b.name)} flex items-center justify-center text-white text-sm font-bold shrink-0`}
+											>
+												{getInitials(b.name)}
+											</div>
+											<div className="flex-1 min-w-0">
+												<p className="font-semibold text-gray-900 truncate">
+													{b.name}
+												</p>
+												<div className="flex items-center gap-3 mt-0.5 flex-wrap">
+													<span className="flex items-center gap-1 text-xs text-gray-500">
+														<RiPhoneLine size={12} /> {b.phone}
+													</span>
+													{b.service && (
+														<span className="flex items-center gap-1 text-xs text-gray-500">
+															<RiStethoscopeLine size={12} /> {b.service}
+														</span>
+													)}
+													{b.preferred_date && (
+														<span className="flex items-center gap-1 text-xs text-gray-500">
+															<RiCalendarCheckLine size={12} />{" "}
+															{b.preferred_date}
+														</span>
+													)}
+												</div>
+												{b.message && (
+													<p className="text-xs text-gray-400 mt-1 truncate italic">
+														"{b.message}"
+													</p>
+												)}
+											</div>
+											<div className="hidden lg:flex items-center gap-1 text-xs text-gray-400 shrink-0">
+												<RiTimeLine size={12} />
+												{new Date(b.created_at).toLocaleDateString("fr-MA", {
+													day: "numeric",
+													month: "short",
+												})}
+											</div>
+											<span
+												className={`px-3 py-1 rounded-full text-xs font-semibold capitalize shrink-0 ${STATUS_STYLES[b.status]}`}
+											>
+												{b.status}
+											</span>
+											<div className="flex items-center gap-1 shrink-0">
+												<a
+													href={`tel:${b.phone}`}
+													className="size-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
+													title="Call"
+												>
+													<RiPhoneLine size={15} />
+												</a>
+												<button
+													type="button"
+													onClick={() => updateStatus(b.id, "confirmed")}
+													className="size-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+												>
+													<RiCheckLine size={15} />
+												</button>
+												<button
+													type="button"
+													onClick={() => updateStatus(b.id, "cancelled")}
+													className="size-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition-colors"
+												>
+													<RiCloseLine size={15} />
+												</button>
+												<button
+													type="button"
+													onClick={() => deleteBooking(b.id)}
+													className="size-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors"
+												>
+													<RiDeleteBinLine size={15} />
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					</>
+				)}
 			</main>
 			{showModal && (
 				<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
